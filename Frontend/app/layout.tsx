@@ -1,16 +1,16 @@
-import './globals.css';
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import "./globals.css";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Department of Transportation - Nepal',
-  description: 'Official website of the Department of Transportation, Nepal',
+  title: "Department of Transportation - Nepal",
+  description: "Official website of the Department of Transportation, Nepal",
 };
 
 export default function RootLayout({
@@ -27,12 +27,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
-          <Toaster />
+          <div className="background-image" />
+          <div className="relative">
+            <Navbar />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+            <Toaster />
+          </div>
         </ThemeProvider>
       </body>
     </html>

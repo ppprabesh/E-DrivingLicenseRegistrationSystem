@@ -72,13 +72,6 @@ export default function AdminPage() {
   if (!isAuthenticated) {
     return (
       <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-8rem)] relative">
-        {/* Background Image */}
-        <Image
-          src="/images/Emblem_of_Nepal.svg"
-          alt="Nepal Emblem"
-          fill
-          className="object-cover opacity-10"
-        />
         {/* Login Card */}
         <Card className="w-full max-w-md z-10">
           <CardHeader>

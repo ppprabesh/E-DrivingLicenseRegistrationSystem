@@ -80,3 +80,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+.background-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/images/Emblem_of_Nepal.svg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.2;
+  z-index: -1;
+}
