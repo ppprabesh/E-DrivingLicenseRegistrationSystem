@@ -1,10 +1,16 @@
-export default function MiddleSection() {
-    return (
-      <div className="flex flex-col items-start text-red-600 mx-2 md:scale-90">
-        <h6 className="text-sm ml-16 md:text-sm leading-tight">नेपाल सरकार</h6>
-        <h6 className="text-sm md:text-sm leading-tight">भौतिक पूर्वाधार तथा यातायात मन्त्रालय</h6>
-        <h3 className="text-base md:text-base font-bold leading-tight ml-6">यातायात व्यवस्था विभाग</h3>
-        <h6 className="text-sm md:text-sm leading-tight ml-12">मीनभवन, काठमाडौं</h6>
-      </div>    
-    )
-}
+import React from "react";
+
+const MiddleSection = () => {
+  return (
+    <div className="text-red-600 text-center lg:text-left">
+      <p className="text-xs md:text-sm">नेपाल सरकार</p>
+      <p className="text-xs md:text-sm">
+        भौतिक पूर्वाधार तथा यातायात मन्त्रालय
+      </p>
+      <p className="text-sm md:text-base font-bold">यातायात व्यवस्था विभाग</p>
+      <p className="text-xs md:text-sm">मीनभवन, काठमाडौं</p>
+    </div>
+  );
+};
+
+export default MiddleSection;
