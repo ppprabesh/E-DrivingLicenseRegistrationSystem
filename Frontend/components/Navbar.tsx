@@ -156,21 +156,23 @@ const Navbar: FC = () => {
     <>
       <div className="fixed top-0 left-0 right-0 bg-white border-b z-50">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="h-24 grid grid-cols-12 items-center gap-4">
-            {/* Logo Section */}
-            <div className="col-span-3 lg:col-span-2 flex items-center justify-center lg:justify-start">
-              <Link href="/" className="block">
-                <img
-                  src="/images/Emblem_of_Nepal.svg"
-                  alt="Department of Transportation"
-                  className="h-14 w-14"
-                />
-              </Link>
-            </div>
+          <div className="h-24 flex justify-between items-center gap-4">
+            <div className="flex gap-4">
+              {/* Logo Section */}
+              <div className="col-span-3 lg:col-span-2 flex items-center justify-center lg:justify-start">
+                <Link href="/" className="block">
+                  <img
+                    src="/images/Emblem_of_Nepal.svg"
+                    alt="Department of Transportation"
+                    className="h-14 w-14"
+                  />
+                </Link>
+              </div>
 
-            {/* Middle Section */}
-            <div className="col-span-6 lg:col-span-4">
-              <MiddleSection />
+              {/* Middle Section */}
+              <div className="col-span-6 lg:col-span-4">
+                <MiddleSection />
+              </div>
             </div>
 
             {/* Navigation Section */}
