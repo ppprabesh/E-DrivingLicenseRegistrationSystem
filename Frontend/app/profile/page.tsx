@@ -1,167 +1,229 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+'use client';
 
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/AuthContext';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-// Dummy user data
-const dummyUser = {
-  name: 'John Doe',
-  email: 'john.doe@example.com',
-  password: 'hashedpassword', // Never expose passwords in real apps
-  isRegistered: true, // Change this to false to test the unregistered view
-  gender: 'male',
-  dobBS: new Date('2050-01-01'),
-  dobAD: new Date('1993-04-14'),
-  citizenshipNumber: '123-456-789',
-  mothersName: 'Jane Doe',
-  fathersName: 'John Doe Sr.',
-  guardianName: 'Uncle Bob',
-  permanentAddress: {
-    province: 'Province 1',
-    district: 'Kathmandu',
-    municipality: 'Kathmandu Metropolitan',
-    wardNo: '10',
-    tole: 'New Road',
-  },
-  temporaryAddress: {
-    province: 'Province 1',
-    district: 'Kathmandu',
-    municipality: 'Kathmandu Metropolitan',
-    wardNo: '10',
-    tole: 'New Road',
-  },
-  transportOffice: 'Kathmandu Transport Office',
-  licenseCategories: ['A', 'B'],
-  writtenExamAppointmentDate: {
-    time: '10:00 AM',
-    day: new Date('2023-12-01'),
-  },
-  trailExamAppointmentDate: {
-    time: '11:00 AM',
-    day: new Date('2023-12-15'),
-  },
-  isBiometricPassed: true,
-  isMedicalPassed: true,
-  isWrittenExamPassed: true,
-  isTrailExamPassed: true,
-  isLicenseIssued: true,
-  licenseNumber: 'LIC123456',
-  licenseIssuedDate: new Date('2023-12-20'),
-};
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone_number: string;
+  citizenship_number: string;
+  written_exam_status: string;
+  physical_exam_status: string;
+  license_issued: boolean;
+  license_registrations: {
+    appointment_date: string;
+    transport_office: string;
+    license_categories: string[];
+  } | null;
+}
 
 export default function ProfilePage() {
-  return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="/images/Emblem_of_Nepal.svg" 
-          alt="Nepal Emblem" 
-          className="w-full h-full object-cover opacity-10"
-        />
-      </div>
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle>User Profile</CardTitle>
-          <CardDescription>
-            {dummyUser.isRegistered ? 'Full Profile' : 'Basic Information'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Always show name and email */}
-          <div>
-            <p className="font-medium">Name</p>
-            <p>{dummyUser.name}</p>
-          </div>
-          <div>
-            <p className="font-medium">Email</p>
-            <p>{dummyUser.email}</p>
-          </div>
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const { user } = useAuth();
+  const supabase = createClientComponentClient();
 
-          {/* Show additional fields if user is registered */}
-          {dummyUser.isRegistered && (
-            <>
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    fetchUserProfile();
+  }, [user, router, supabase]);
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select(`
+          *,
+          license_registrations (
+            appointment_date,
+            transport_office,
+            license_categories
+          )
+        `)
+        .eq('id', user?.id)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load profile',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: string | null) => {
+    switch (status?.toLowerCase()) {
+      case 'passed':
+        return <Badge className="bg-green-500">Passed</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-500">Failed</Badge>;
+      default:
+        return <Badge className="bg-yellow-500">Pending</Badge>;
+    }
+  };
+
+  if (isLoading) {
+    return <div className="container mx-auto px-4 py-8">Loading...</div>;
+  }
+
+  if (!profile) {
+    return <div className="container mx-auto px-4 py-8">Profile not found</div>;
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">My Profile</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Personal Information</CardTitle>
+            <CardDescription>Your basic details</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
               <div>
-                <p className="font-medium">Gender</p>
-                <p>{dummyUser.gender}</p>
+                <p className="text-sm text-gray-500">Name</p>
+                <p className="font-medium">{profile.name}</p>
               </div>
               <div>
-                <p className="font-medium">Date of Birth (BS)</p>
-                <p>{dummyUser.dobBS.toLocaleDateString()}</p>
+                <p className="text-sm text-gray-500">Email</p>
+                <p className="font-medium">{profile.email}</p>
               </div>
               <div>
-                <p className="font-medium">Date of Birth (AD)</p>
-                <p>{dummyUser.dobAD.toLocaleDateString()}</p>
+                <p className="text-sm text-gray-500">Phone Number</p>
+                <p className="font-medium">{profile.phone_number}</p>
               </div>
               <div>
-                <p className="font-medium">Citizenship Number</p>
-                <p>{dummyUser.citizenshipNumber}</p>
+                <p className="text-sm text-gray-500">Citizenship Number</p>
+                <p className="font-medium">{profile.citizenship_number}</p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>License Registration Status</CardTitle>
+            <CardDescription>Your registration details</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
               <div>
-                <p className="font-medium">Mother's Name</p>
-                <p>{dummyUser.mothersName}</p>
+                <p className="text-sm text-gray-500">Registration Status</p>
+                <Badge className={profile.license_registrations ? "bg-green-500" : "bg-red-500"}>
+                  {profile.license_registrations ? "Registered" : "Not Registered"}
+                </Badge>
               </div>
-              <div>
-                <p className="font-medium">Father's Name</p>
-                <p>{dummyUser.fathersName}</p>
-              </div>
-              {dummyUser.guardianName && (
-                <div>
-                  <p className="font-medium">Guardian's Name</p>
-                  <p>{dummyUser.guardianName}</p>
-                </div>
-              )}
-              <div>
-                <p className="font-medium">Permanent Address</p>
-                <p>
-                  {dummyUser.permanentAddress.province}, {dummyUser.permanentAddress.district},{' '}
-                  {dummyUser.permanentAddress.municipality}, Ward No. {dummyUser.permanentAddress.wardNo},{' '}
-                  {dummyUser.permanentAddress.tole}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium">Temporary Address</p>
-                <p>
-                  {dummyUser.temporaryAddress.province}, {dummyUser.temporaryAddress.district},{' '}
-                  {dummyUser.temporaryAddress.municipality}, Ward No. {dummyUser.temporaryAddress.wardNo},{' '}
-                  {dummyUser.temporaryAddress.tole}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium">Transport Office</p>
-                <p>{dummyUser.transportOffice}</p>
-              </div>
-              <div>
-                <p className="font-medium">License Categories</p>
-                <p>{dummyUser.licenseCategories.join(', ')}</p>
-              </div>
-              <div>
-                <p className="font-medium">Written Exam Appointment</p>
-                <p>
-                  {dummyUser.writtenExamAppointmentDate.day.toLocaleDateString()} at{' '}
-                  {dummyUser.writtenExamAppointmentDate.time}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium">Trail Exam Appointment</p>
-                <p>
-                  {dummyUser.trailExamAppointmentDate.day.toLocaleDateString()} at{' '}
-                  {dummyUser.trailExamAppointmentDate.time}
-                </p>
-              </div>
-              {dummyUser.isLicenseIssued && (
+              {profile.license_registrations && (
                 <>
                   <div>
-                    <p className="font-medium">License Number</p>
-                    <p>{dummyUser.licenseNumber}</p>
+                    <p className="text-sm text-gray-500">Appointment Date</p>
+                    <p className="font-medium">
+                      {new Date(profile.license_registrations.appointment_date).toLocaleDateString()}
+                    </p>
                   </div>
                   <div>
-                    <p className="font-medium">License Issued Date</p>
-                    <p>{dummyUser.licenseIssuedDate?.toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">Transport Office</p>
+                    <p className="font-medium">{profile.license_registrations.transport_office}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">License Categories</p>
+                    <p className="font-medium">
+                      {profile.license_registrations?.license_categories?.length 
+                        ? profile.license_registrations.license_categories.join(', ')
+                        : 'No categories selected'}
+                    </p>
                   </div>
                 </>
               )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Written Examination</CardTitle>
+            <CardDescription>Your written exam status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500">Status</p>
+                {getStatusBadge(profile.written_exam_status)}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Physical Examination</CardTitle>
+            <CardDescription>Your physical exam status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500">Status</p>
+                {getStatusBadge(profile.physical_exam_status)}
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">License Status</p>
+                {profile.physical_exam_status?.toLowerCase() === 'passed' ? (
+                  <Badge className="bg-green-500">License Issued</Badge>
+                ) : profile.physical_exam_status?.toLowerCase() === 'failed' ? (
+                  <Badge className="bg-red-500">Not Issued</Badge>
+                ) : (
+                  <Badge className="bg-yellow-500">Pending</Badge>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-8 flex gap-4">
+        {!profile.license_registrations && (
+          <Button onClick={() => router.push('/license-registration')}>
+            Register for License
+          </Button>
+        )}
+        {profile.license_registrations && !profile.written_exam_status && (
+          <Button onClick={() => router.push('/written-examination')}>
+            Book Written Examination
+          </Button>
+        )}
+        {profile.written_exam_status === 'passed' && !profile.physical_exam_status && (
+          <Button onClick={() => router.push('/physical-examination')}>
+            Book Physical Examination
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

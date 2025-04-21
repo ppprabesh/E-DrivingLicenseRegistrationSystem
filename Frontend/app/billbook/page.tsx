@@ -37,13 +37,7 @@ export default function BillBookPage() {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold text-blue-600 mb-6 text-center">Bill Book Management</h1>
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="/images/Emblem_of_Nepal.svg" 
-          alt="Nepal Emblem" 
-          className="w-full h-full object-cover opacity-10"
-        />
-      </div>
+     
 
       {/* Search Section */}
       <Card className="mb-6">

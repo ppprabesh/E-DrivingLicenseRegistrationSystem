@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from '@/lib/AuthContext'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { toast } from '@/components/ui/use-toast'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import {
   Table,
   TableBody,
@@ -11,159 +12,151 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { format } from 'date-fns'
 
-// Hardcoded credentials (in a real app, this would be handled differently)
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin123";
-
-interface Applicant {
+interface LicenseRegistration {
   id: string;
-  phoneNumber: string;
-  licenseType: string;
-  testDate: string;
+  user_id: string;
+  name: string;
+  gender: string;
+  citizenship_number: string;
+  transport_office: string;
+  license_categories: string[];
+  appointment_date: string;
   status: string;
+  user: {
+    email: string;
+    phone_number: string;
+  };
+  examination_bookings: {
+    exam_type: string;
+    exam_date: string;
+    status: string;
+  }[];
 }
 
-export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const { toast } = useToast();
+export default function AdminDashboard() {
+  const { admin, signOut } = useAuth()
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [registrations, setRegistrations] = useState<LicenseRegistration[]>([])
+  const supabase = createClientComponentClient()
 
-  // Mock data (in a real app, this would come from a database)
-  const [applicants] = useState<Applicant[]>([
-    {
-      id: "1",
-      phoneNumber: "+977 9841234567",
-      licenseType: "MotorBike (A)",
-      testDate: "2024-03-20",
-      status: "pending",
-    },
-    // Add more mock data as needed
-  ]);
-
-  const handleLogin = () => {
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
+  useEffect(() => {
+    // Check for stored admin data
+    const storedAdmin = localStorage.getItem('admin')
+    if (storedAdmin) {
+      fetchRegistrations()
+      setIsLoading(false)
     } else {
-      toast({
-        title: "Error",
-        description: "Invalid credentials",
-        variant: "destructive",
-      });
+      // Redirect to login if not admin
+      router.push('/login?admin=true')
     }
-  };
+  }, [router])
 
-  const handleStatusUpdate = (
-    id: string,
-    status: "pass" | "fail",
-    examType: "written" | "physical"
-  ) => {
-    // In a real app, this would update the database
-    toast({
-      title: "Status Updated",
-      description: `Applicant ${id} has been marked as ${status} for ${examType} exam`,
-    });
-  };
+  const fetchRegistrations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('license_registrations')
+        .select(`
+          *,
+          user:users(email, phone_number),
+          examination_bookings(exam_type, exam_date, status)
+        `)
+        .order('created_at', { ascending: false })
 
-  if (!isAuthenticated) {
-    return (
-      <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-8rem)] relative">
-        {/* Background Image */}
-        <Image
-          src="/images/Emblem_of_Nepal.svg"
-          alt="Nepal Emblem"
-          fill
-          className="object-cover opacity-10"
-        />
-        {/* Login Card */}
-        <Card className="w-full max-w-md z-10">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center text-blue-600">
-              Admin Login
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="focus:ring-blue-600 focus:border-blue-600"
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="focus:ring-blue-600 focus:border-blue-600"
-            />
-            <Button
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              onClick={handleLogin}
-            >
-              Login
-            </Button>
-          </CardContent>
-        </Card>
+      if (error) throw error
+      setRegistrations(data || [])
+    } catch (error) {
+      console.error('Error fetching registrations:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load registrations',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return <Badge className="bg-yellow-500">Pending</Badge>
+      case 'approved':
+        return <Badge className="bg-green-500">Approved</Badge>
+      case 'rejected':
+        return <Badge className="bg-red-500">Rejected</Badge>
+      default:
+        return <Badge className="bg-gray-500">{status}</Badge>
+    }
+  }
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold">Loading...</h2>
       </div>
-    );
+    </div>
+  }
+
+  if (!admin) {
+    return null // Don't render anything while redirecting
   }
 
   return (
-    <div className="container mx-auto p-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Applicant Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Phone Number</TableHead>
-                <TableHead>License Type</TableHead>
-                <TableHead>Test Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {applicants.map((applicant) => (
-                <TableRow key={applicant.id}>
-                  <TableCell>{applicant.phoneNumber}</TableCell>
-                  <TableCell>{applicant.licenseType}</TableCell>
-                  <TableCell>{applicant.testDate}</TableCell>
-                  <TableCell>{applicant.status}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          handleStatusUpdate(applicant.id, "pass", "written")
-                        }
-                      >
-                        Pass
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() =>
-                          handleStatusUpdate(applicant.id, "fail", "written")
-                        }
-                      >
-                        Fail
-                      </Button>
-                    </div>
-                  </TableCell>
+    <div className="min-h-screen bg-gray-100 pt-24">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">License Registrations</h2>
+          
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>License Categories</TableHead>
+                  <TableHead>Transport Office</TableHead>
+                  <TableHead>Appointment Date</TableHead>
+                  <TableHead>Written Exam</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {registrations.map((registration) => (
+                  <TableRow key={registration.id}>
+                    <TableCell className="font-medium">{registration.name}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{registration.user.email}</div>
+                        <div className="text-gray-500">{registration.user.phone_number}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{registration.license_categories.join(', ')}</TableCell>
+                    <TableCell>{registration.transport_office}</TableCell>
+                    <TableCell>
+                      {format(new Date(registration.appointment_date), 'PPP')}
+                    </TableCell>
+                    <TableCell>
+                      {registration.examination_bookings?.[0] ? (
+                        <div className="text-sm">
+                          <div>{format(new Date(registration.examination_bookings[0].exam_date), 'PPP')}</div>
+                          {getStatusBadge(registration.examination_bookings[0].status)}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500">Not booked</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(registration.status)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </main>
     </div>
-  );
+  )
 }

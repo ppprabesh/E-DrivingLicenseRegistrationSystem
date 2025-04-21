@@ -1,6 +1,6 @@
 "use client"
 
-import { Flag, ChevronDown, Menu } from "lucide-react"
+import { Flag, ChevronDown, Menu, LogOut, User } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,10 +11,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useState, useEffect } from "react"
 import MiddleSection from "./MiddleSection"
+import { useAuth } from "@/lib/AuthContext"
+import { useRouter } from "next/navigation"
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isLoggedIn] = useState(false)
+  const { user, admin, signOut } = useAuth()
+  const router = useRouter()
 
   // Close mobile menu on scroll
   useEffect(() => {
@@ -27,6 +30,11 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [isMobileMenuOpen])
+
+  const handleLogout = () => {
+    signOut()
+    router.push('/')
+  }
 
   return (
     <>
@@ -68,10 +76,10 @@ const Navbar = () => {
                   E-BillBook 
                 </Button>
               </Link>
-              {isLoggedIn && (
-                <Link href="/add-category">
+              {user && (
+                <Link href="/profile">
                   <Button variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                    Add Category
+                    My Profile
                   </Button>
                 </Link>
               )}
@@ -112,9 +120,47 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              <Link href="/login">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">Login</Button>
-              </Link>
+              {admin ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                      <User className="h-5 w-5 mr-2" />
+                      Admin
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <Link href="/admin">
+                      <DropdownMenuItem>Admin Dashboard</DropdownMenuItem>
+                    </Link>
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                      <User className="h-5 w-5 mr-2" />
+                      {user.name}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <Link href="/profile">
+                      <DropdownMenuItem>My Profile</DropdownMenuItem>
+                    </Link>
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link href="/login">
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">Login</Button>
+                </Link>
+              )}
             </nav>
           </div>
         </div>
@@ -133,10 +179,10 @@ const Navbar = () => {
                   E-BillBook
                 </Button>
               </Link>
-              {isLoggedIn && (
-                <Link href="/add-category">
+              {user && (
+                <Link href="/profile">
                   <Button variant="ghost" className="w-full justify-start hover:text-blue-600 hover:bg-blue-50">
-                    Add Category
+                    My Profile
                   </Button>
                 </Link>
               )}
@@ -177,9 +223,37 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              <Link href="/login">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">Login</Button>
-              </Link>
+              {admin ? (
+                <>
+                  <Link href="/admin">
+                    <Button variant="ghost" className="w-full justify-start hover:text-blue-600 hover:bg-blue-50">
+                      <User className="h-4 w-4 mr-2" />
+                      Admin Dashboard
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start hover:text-blue-600 hover:bg-blue-50"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </>
+              ) : user ? (
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start hover:text-blue-600 hover:bg-blue-50"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              ) : (
+                <Link href="/login">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">Login</Button>
+                </Link>
+              )}
             </nav>
           </div>
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,28 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays, isWithinInterval, isSaturday, differenceInYears } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/AuthContext";
+import { useRouter } from "next/navigation";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { nepaliDateConverter } from "@/lib/utils/dateConverter";
-import { transporationOffices } from "@/lib/data/locations";
+
+// Define the transportation offices data
+// Replace this with your actual data import if available
+const transportationOffices = [
+  "Bagmati Transportation Office, Ekantakuna",
+  "Bagmati Transportation Office, Thulobharyang",
+  "Koshi Transportation Office, Itahari",
+  "Gandaki Transportation Office, Pokhara",
+  "Lumbini Transportation Office, Butwal",
+  "Sudurpaschim Transportation Office, Dhangadhi",
+  "Karnali Transportation Office, Surkhet",
+  "Madhesh Transportation Office, Janakpur"
+];
 
 // Form Schema
 const formSchema = z.object({
@@ -28,7 +44,6 @@ const formSchema = z.object({
   dobBS: z.string().nonempty("Date of Birth (BS) is required"),
   dobAD: z.string().nonempty("Date of Birth (AD) is required"),
   citizenshipNumber: z.string().nonempty("Citizenship Number is required"),
-  citizenshipFile: z.instanceof(File, { message: "Citizenship file is required" }),
   mothersName: z.string().nonempty("Mother's Name is required"),
   fathersName: z.string().nonempty("Father's Name is required"),
   guardianName: z.string().optional(),
@@ -51,39 +66,97 @@ const formSchema = z.object({
   sameAsPermanent: z.boolean(),
 
   // License Details
-  appointmentDate: z.date(),
+  appointmentDate: z.date().optional(),
   transportOffice: z.string().nonempty("Transportation Office is required"),
-  licenseCategories: z.array(z.string()),
-  district: z.string().nonempty("District is required"),
+  licenseCategories: z.array(z.string()).min(1, "At least one license category is required"),
+  district: z.string().optional(),
 });
 
 export default function LicenseRegistrationForm() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [sameAddress, setSameAddress] = useState(false);
   const [date, setDate] = useState<Date>();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [showAgeError, setShowAgeError] = useState(false); // State for age error popup
+  const [showAgeError, setShowAgeError] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       sameAsPermanent: false,
       licenseCategories: [],
+      permanentAddress: {
+        province: "",
+        district: "",
+        municipality: "",
+        wardNo: "",
+        tole: ""
+      },
+      temporaryAddress: {
+        province: "",
+        district: "",
+        municipality: "",
+        wardNo: "",
+        tole: ""
+      }
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  // Pre-fill form with user data when available
+  useEffect(() => {
+    if (user) {
+      form.setValue("name", user.name || "");
+      form.setValue("citizenshipNumber", user.citizenship_number || "");
+      // Add more pre-filled fields as they become available in the user object
+    }
+  }, [user, form]);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to submit this form",
+        variant: "destructive",
+      });
+      router.push("/login");
+      return;
+    }
+
     // Calculate age
     const dobAD = new Date(values.dobAD);
     const today = new Date();
     const age = differenceInYears(today, dobAD);
 
     if (age < 16) {
-      setShowAgeError(true); // Show error popup if age is less than 16
+      setShowAgeError(true);
       return;
     }
 
-    console.log(values); // Proceed with form submission
+    // Validate license categories
+    if (values.licenseCategories.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one license category",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Store form data in localStorage
+      localStorage.setItem('licenseRegistrationData', JSON.stringify(values));
+      
+      // Redirect to written examination booking
+      router.push('/written-examination');
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred while submitting the form.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDateChange = (type: "BS" | "AD", value: string) => {
@@ -98,21 +171,19 @@ export default function LicenseRegistrationForm() {
     }
   };
 
-  function getAllOffices() {
-    const allOffices: string[] = [];
-    Object.values(transporationOffices).forEach((offices) => {
-      allOffices.push(...offices);
-    });
-    return allOffices.sort(); // Sort alphabetically
-  }
-
   return (
     <>
       <div className="mb-6 italic text-gray-600">
         *Please provide accurate and genuine information while filling out this form. Any false information may lead to the rejection of your application.*
       </div>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
+        <form 
+          onSubmit={(e) => {
+            console.log('Form submit event triggered');
+            form.handleSubmit(onSubmit)(e);
+          }} 
+          className="space-y-6 w-full"
+        >
           {/* Applicant Details Section */}
           <div className="bg-white p-4 md:p-6 rounded-lg shadow-sm">
             <h2 className="text-2xl font-semibold mb-6 text-blue-600">Applicant Details</h2>
@@ -122,13 +193,19 @@ export default function LicenseRegistrationForm() {
                   Full Name <span className="text-red-500">*</span>
                 </Label>
                 <Input {...form.register("name")} placeholder="Enter your full name" />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
+                )}
               </div>
 
               <div className="space-y-4">
                 <Label className="text-blue-600">
                   Gender <span className="text-red-500">*</span>
                 </Label>
-                <RadioGroup onValueChange={(value) => form.setValue("gender", value as any)}>
+                <RadioGroup 
+                  onValueChange={(value) => form.setValue("gender", value as "male" | "female" | "other")} 
+                  defaultValue={form.watch("gender")}
+                >
                   <div className="flex space-x-4">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="male" id="male" />
@@ -144,6 +221,9 @@ export default function LicenseRegistrationForm() {
                     </div>
                   </div>
                 </RadioGroup>
+                {form.formState.errors.gender && (
+                  <p className="text-sm text-red-500">{form.formState.errors.gender.message}</p>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -155,6 +235,9 @@ export default function LicenseRegistrationForm() {
                   onChange={(e) => handleDateChange("BS", e.target.value)}
                   placeholder="YYYY-MM-DD"
                 />
+                {form.formState.errors.dobBS && (
+                  <p className="text-sm text-red-500">{form.formState.errors.dobBS.message}</p>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -166,6 +249,9 @@ export default function LicenseRegistrationForm() {
                   onChange={(e) => handleDateChange("AD", e.target.value)}
                   placeholder="YYYY-MM-DD"
                 />
+                {form.formState.errors.dobAD && (
+                  <p className="text-sm text-red-500">{form.formState.errors.dobAD.message}</p>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -173,36 +259,8 @@ export default function LicenseRegistrationForm() {
                   Citizenship Number <span className="text-red-500">*</span>
                 </Label>
                 <Input {...form.register("citizenshipNumber")} placeholder="Enter your citizenship number" />
-              </div>
-
-              <div className="space-y-4">
-                <Label className="text-blue-600">
-                  Citizenship File <span className="text-red-500">*</span>
-                </Label>
-                <p className="text-sm italic text-gray-600 mb-2">Accepted formats: JPG, JPEG, PNG. Maximum file size: 1MB</p>
-                <Input
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  placeholder="Upload image file (JPG, PNG, PDF) less than 1MB"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (file.size > 1024 * 1024) {
-                        // 1MB in bytes
-                        form.setError("citizenshipFile", {
-                          type: "manual",
-                          message: "File size must be less than 1MB",
-                        });
-                        e.target.value = ""; // Reset input
-                      } else {
-                        form.clearErrors("citizenshipFile");
-                        form.setValue("citizenshipFile", file);
-                      }
-                    }
-                  }}
-                />
-                {form.formState.errors.citizenshipFile && (
-                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.citizenshipFile.message}</p>
+                {form.formState.errors.citizenshipNumber && (
+                  <p className="text-sm text-red-500">{form.formState.errors.citizenshipNumber.message}</p>
                 )}
               </div>
 
@@ -211,6 +269,9 @@ export default function LicenseRegistrationForm() {
                   Mother's Name <span className="text-red-500">*</span>
                 </Label>
                 <Input {...form.register("mothersName")} placeholder="Enter your mother's name" />
+                {form.formState.errors.mothersName && (
+                  <p className="text-sm text-red-500">{form.formState.errors.mothersName.message}</p>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -218,6 +279,9 @@ export default function LicenseRegistrationForm() {
                   Father's Name <span className="text-red-500">*</span>
                 </Label>
                 <Input {...form.register("fathersName")} placeholder="Enter your father's name" />
+                {form.formState.errors.fathersName && (
+                  <p className="text-sm text-red-500">{form.formState.errors.fathersName.message}</p>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -312,39 +376,13 @@ export default function LicenseRegistrationForm() {
                 <Label className="text-blue-600">
                   Transportation Office <span className="text-red-500">*</span>
                 </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" className="w-full justify-between">
-                      {form.watch("transportOffice") || "Select office..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search office..." />
-                      <CommandEmpty>No office found.</CommandEmpty>
-                      <CommandGroup className="max-h-60 overflow-auto">
-                        {getAllOffices().map((office) => (
-                          <CommandItem
-                            key={office}
-                            value={office}
-                            onSelect={() => {
-                              form.setValue("transportOffice", office);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                form.watch("transportOffice") === office ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {office}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Input 
+                  {...form.register("transportOffice")} 
+                  placeholder="Enter transportation office name" 
+                />
+                {form.formState.errors.transportOffice && (
+                  <p className="text-sm text-red-500">{form.formState.errors.transportOffice.message}</p>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -363,6 +401,7 @@ export default function LicenseRegistrationForm() {
                   ].map((category) => (
                     <div key={category.id} className="flex items-center space-x-2">
                       <Checkbox
+                        id={`category-${category.id}`}
                         onCheckedChange={(checked) => {
                           const currentCategories = form.getValues("licenseCategories");
                           if (checked) {
@@ -374,24 +413,28 @@ export default function LicenseRegistrationForm() {
                             );
                           }
                         }}
+                        checked={form.watch("licenseCategories").includes(category.id)}
                       />
-                      <Label className="text-sm">{category.name}</Label>
+                      <Label htmlFor={`category-${category.id}`} className="text-sm">{category.name}</Label>
                     </div>
                   ))}
                 </div>
+                {form.formState.errors.licenseCategories && (
+                  <p className="text-sm text-red-500">{form.formState.errors.licenseCategories.message}</p>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-              Submit Application
+          <div className="flex justify-end space-x-4">
+            <Button 
+              type="submit" 
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Next
             </Button>
           </div>
         </form>
-
-        {/* Confirmation Dialog */}
-        
 
         {/* Age Error Dialog */}
         <Dialog open={showAgeError} onOpenChange={setShowAgeError}>

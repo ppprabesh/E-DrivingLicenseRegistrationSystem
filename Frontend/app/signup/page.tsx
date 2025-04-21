@@ -7,16 +7,16 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useState } from "react";
 import { Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 const signupSchema = z.object({
-  Name: z.string().min(2, 'First name must be at least 2 characters'),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits'),
+  citizenshipNumber: z.string().min(5, 'Citizenship number must be at least 5 characters'),
   email: z.string().email('Invalid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
-  confirmPassword: z.string()
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -35,14 +35,36 @@ export default function SignupPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { signUp } = useAuth();
 
-  const onSubmit = (data: SignupFormData) => {
-    console.log('Signup Data:', data);
-    // Add your signup logic here
+  const onSubmit = async (data: SignupFormData) => {
+    try {
+      setIsLoading(true);
+      await signUp(
+        data.fullName,
+        data.email,
+        data.password,
+        data.phoneNumber,
+        data.citizenshipNumber
+      );
+      toast({
+        title: "Account Created",
+        description: "Your account has been created successfully. Please check your email to verify your account.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Signup Failed",
+        description: error.message || "Please try again with different credentials.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative py-12">
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
       <div className="absolute inset-0 z-0">
         <img 
           src="/images/Emblem_of_Nepal.svg" 
@@ -53,49 +75,89 @@ export default function SignupPage() {
       
       <Card className="w-full max-w-md shadow-lg relative z-10">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-blue-600">Sign Up</CardTitle>
+          <CardTitle className="text-2xl font-bold text-blue-600">Create Account</CardTitle>
           <CardDescription className="text-gray-600">
-            Create your account to get started.
+            Sign up to access driving license services
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div >
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <input
-                  type="text"
-                  {...register('Name')}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                  placeholder="Enter your full name"
-                />
-                {errors.Name && (
-                  <p className="text-sm text-red-500 mt-1">{errors.Name.message}</p>
-                )}
-              </div> 
-            </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                Full Name
+              </label>
+              <input
+                type="text"
+                id="fullName"
+                {...register('fullName')}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                placeholder="Enter your full name"
+                disabled={isLoading}
+              />
+              {errors.fullName && (
+                <p className="text-sm text-red-500 mt-1">{errors.fullName.message}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                id="phoneNumber"
+                {...register('phoneNumber')}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                placeholder="Enter your phone number"
+                disabled={isLoading}
+              />
+              {errors.phoneNumber && (
+                <p className="text-sm text-red-500 mt-1">{errors.phoneNumber.message}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="citizenshipNumber" className="block text-sm font-medium text-gray-700">
+                Citizenship Number
+              </label>
+              <input
+                type="text"
+                id="citizenshipNumber"
+                {...register('citizenshipNumber')}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                placeholder="Enter your citizenship number"
+                disabled={isLoading}
+              />
+              {errors.citizenshipNumber && (
+                <p className="text-sm text-red-500 mt-1">{errors.citizenshipNumber.message}</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+              </label>
               <input
                 type="email"
+                id="email"
                 {...register('email')}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                 placeholder="Enter your email"
+                disabled={isLoading}
               />
               {errors.email && (
                 <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
               )}
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  id="password"
                   {...register('password')}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                   placeholder="Create a password"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -109,15 +171,18 @@ export default function SignupPage() {
                 <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
               )}
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirm Password
+              </label>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
+                  id="confirmPassword"
                   {...register('confirmPassword')}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
                   placeholder="Confirm your password"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -131,12 +196,12 @@ export default function SignupPage() {
                 <p className="text-sm text-red-500 mt-1">{errors.confirmPassword.message}</p>
               )}
             </div>
-
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-colors"
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
             >
-              Sign Up
+              {isLoading ? 'Creating Account...' : 'Sign Up'}
             </button>
           </form>
         </CardContent>
