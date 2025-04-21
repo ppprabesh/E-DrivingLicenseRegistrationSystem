@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import LicenseRegistrationForm from "@/components/LicenseRegistrationForm";
 import Image from "next/image";
@@ -20,7 +20,7 @@ export default function LicenseRegistration() {
       {/* Content */}
       <div className="relative z-10 max-w-6xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-bold text-red-600 mb-8">
-           Online License Registration
+          Online License Registration
         </h1>
         <LicenseRegistrationForm />
       </div>

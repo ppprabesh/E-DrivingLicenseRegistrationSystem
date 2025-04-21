@@ -1,10 +1,17 @@
-"use client"
+"use client";
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import Link from 'next/link';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import Link from "next/link";
 import { useState } from "react";
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
@@ -94,14 +101,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="/images/Emblem_of_Nepal.svg" 
-          alt="Nepal Emblem" 
-          className="w-full h-full object-cover opacity-10"
-        />
-      </div>
-      
       <Card className="w-full max-w-md shadow-lg relative z-10">
         <CardHeader className="space-y-4">
           <div className="flex justify-end">
@@ -163,12 +162,15 @@ export default function LoginPage() {
               </div>
             )}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
                   {...register('password')}
@@ -181,11 +183,17 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.password.message}
+                </p>
               )}
             </div>
             <button

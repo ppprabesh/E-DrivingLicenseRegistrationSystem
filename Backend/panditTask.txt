@@ -1,0 +1,9 @@
+yo backend folder ma laravel chala paila suru yo github repo clone gar ani start gar
+yo backend repo ma hal laravel new garera
+ani sign in sign up route api bana
+user ko model ma license medical written exam, trail ko status ni hal
+ani user le register garexi written exam lai date time lina milxa
+so ekdin ma 11-2 time harek ganta ma 50 jana atne gari api haru bana
+ani pass vayo vani medical ani tespaxi trial 
+trail ko lagi harek ganta 10 jana le matra signup garna paune natra full hune time chai harek din 10-4
+ani admin le status haru change garna milne user ko
