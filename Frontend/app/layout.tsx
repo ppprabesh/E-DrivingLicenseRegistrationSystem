@@ -22,28 +22,22 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <div className="background-image" />
-          <div className="relative">
-            <Navbar />
-            <main className="min-h-screen">{children}</main>
-            <Footer />
-            <Toaster />
-          </div>
-          <AuthProvider>
-            <Navbar />
-            <main className="min-h-screen">
-              {children}
-            </main>
-            <Footer />
-            <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <div className="background-image" />
+            <div className="relative">
+              <Navbar />
+              <main className="min-h-screen">{children}</main>
+              <Footer />
+              <Toaster />
+            </div>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
